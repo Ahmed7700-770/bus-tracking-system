@@ -4,9 +4,9 @@
 // استبدل هذه القيم بإعدادات مشروعك من Firebase Console
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE",
+  apiKey: "AIzaSyBv0aBgrG0Tz8LzIlPuuAuiVFDlFIP47d4",
   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
+  projectId: "bus-tracking-system-da5b9",
   storageBucket: "YOUR_PROJECT_ID.appspot.com",
   messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
   appId: "YOUR_APP_ID",
