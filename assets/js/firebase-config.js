@@ -2,25 +2,24 @@
 // تكوين Firebase
 // ============================================
 // استبدل هذه القيم بإعدادات مشروعك من Firebase Console
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBv0aBgrG0Tz8LzIlPuuAuiVFDlFIP47d4",
-  authDomain: "bus-tracking-system-da5b9.firebaseapp.com",
-  databaseURL: "https://bus-tracking-system-da5b9-default-rtdb.firebaseio.com",
-  projectId: "bus-tracking-system-da5b9",
-  storageBucket: "bus-tracking-system-da5b9.firebasestorage.app",
-  messagingSenderId: "21140582193",
-  appId: "1:21140582193:web:f1614b8368165b3a9bca10",
-  measurementId: "G-K5L5LKBLP3"
-};
-
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyCGu-vKQSy1yktBy072d1sv9WKuI15WNVo",
+    authDomain: "bus-tracking-system-c0b7f.firebaseapp.com",
+    projectId: "bus-tracking-system-c0b7f",
+    storageBucket: "bus-tracking-system-c0b7f.firebasestorage.app",
+    messagingSenderId: "418132318115",
+    appId: "1:418132318115:web:bfb3208214b09361596c16",
+    measurementId: "G-SGC629TGCD"
+  };
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
