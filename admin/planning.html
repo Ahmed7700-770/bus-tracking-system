@@ -1,0 +1,1979 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>نظام مسارات الباصات المدرسية المتقدم</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin />
+
+  <!-- SheetJS لتصدير Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+
+  <style>
+    /* ====== تصميم حديث وجذاب محسّن بالكامل ====== */
+    :root{
+      --glass-bg: rgba(255,255,255,0.97);
+      --glass-stroke: rgba(15, 23, 42, 0.08);
+      --brand: #0ea5e9;   /* sky-500 */
+      --brand-2: #a855f7; /* purple-500 */
+      --brand-3: #22c55e; /* green-500 */
+      --brand-4: #f59e0b; /* amber-500 */
+      --text: #0f172a;    /* slate-900 */
+      --muted: #475569;   /* slate-600 */
+      --ring: #bae6fd;    /* sky-200 */
+      --danger: #ef4444;  /* red-500 */
+    }
+    
+    *{box-sizing:border-box}
+    
+    html,body{
+      height:100%;
+      margin:0;
+      font-family:ui-rounded,"Tajawal","Noto Sans Arabic",system-ui,Segoe UI,Roboto,Arial;
+      background:
+        radial-gradient(1400px 900px at 10% 0%, #e0f2fe 0%, transparent 65%),
+        radial-gradient(1200px 800px at 100% 0%, #f3e8ff 0%, transparent 65%),
+        radial-gradient(800px 600px at 50% 100%, #fef3c7 0%, transparent 70%),
+        linear-gradient(180deg,#f8fafc 0%, #eef2ff 100%);
+      animation: backgroundShift 20s ease-in-out infinite;
+    }
+    
+    @keyframes backgroundShift{
+      0%, 100% { background-position: 0% 0%, 100% 0%, 50% 100%; }
+      50% { background-position: 5% 5%, 95% 5%, 50% 95%; }
+    }
+    
+    #app{
+      display:grid;
+      grid-template-columns:500px 1fr;
+      height:100%;
+      gap:14px;
+      padding:14px;
+    }
+    
+    #side{
+      padding:22px;
+      overflow:auto;
+      background:var(--glass-bg);
+      border:1px solid var(--glass-stroke);
+      backdrop-filter:saturate(150%) blur(16px);
+      border-radius:24px;
+      box-shadow:0 16px 36px rgba(2,6,23,0.10), 0 0 0 1px rgba(255,255,255,0.8) inset;
+    }
+    
+    #side::-webkit-scrollbar{
+      width: 8px;
+    }
+    
+    #side::-webkit-scrollbar-track{
+      background: rgba(241,245,249,0.5);
+      border-radius: 10px;
+    }
+    
+    #side::-webkit-scrollbar-thumb{
+      background: rgba(14,165,233,0.3);
+      border-radius: 10px;
+    }
+    
+    #side::-webkit-scrollbar-thumb:hover{
+      background: rgba(14,165,233,0.5);
+    }
+    
+    #map{
+      height:100%;
+      border-radius:24px;
+      border:1px solid #e2e8f0;
+      box-shadow:0 20px 44px rgba(2,6,23,0.12), 0 0 0 1px rgba(255,255,255,0.9) inset;
+      cursor:crosshair;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    #map:hover{
+      box-shadow:0 24px 52px rgba(2,6,23,0.16), 0 0 0 1px rgba(255,255,255,1) inset;
+      transform: translateY(-2px);
+    }
+    
+    #map.pick-mode{
+      box-shadow:0 24px 52px rgba(34,197,94,0.25), 0 0 0 3px rgba(34,197,94,0.3) inset;
+      animation: mapPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes mapPulse{
+      0%, 100% { box-shadow:0 24px 52px rgba(34,197,94,0.25), 0 0 0 3px rgba(34,197,94,0.3) inset; }
+      50% { box-shadow:0 28px 60px rgba(34,197,94,0.35), 0 0 0 4px rgba(34,197,94,0.5) inset; }
+    }
+
+    .header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:18px 20px;
+      margin-bottom:20px;
+      background:linear-gradient(135deg,#ffffff,#f7fbff);
+      border-radius:20px;
+      border:1px solid #eef2f7;
+      box-shadow:0 6px 16px rgba(2,6,23,0.05), 0 0 0 1px rgba(255,255,255,0.8) inset;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .header:hover{
+      transform: translateY(-2px);
+      box-shadow:0 10px 24px rgba(2,6,23,0.08), 0 0 0 1px rgba(255,255,255,1) inset;
+    }
+    
+    .logo{
+      font-weight:900;
+      font-size:18px;
+      color:var(--text);
+      letter-spacing:0.3px;
+      background: linear-gradient(135deg, #0ea5e9, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .badge{
+      padding:7px 16px;
+      border-radius:999px;
+      background:linear-gradient(135deg,#ecfeff,#dbeafe);
+      border:1px solid #a5f3fc;
+      color:#075985;
+      font-weight:700;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:0.6px;
+      animation: badgePulse 3s ease-in-out infinite;
+      box-shadow: 0 4px 12px rgba(14,165,233,0.15);
+    }
+    
+    @keyframes badgePulse{
+      0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(14,165,233,0.15); }
+      50% { transform: scale(1.05); box-shadow: 0 6px 16px rgba(14,165,233,0.25); }
+    }
+
+    details{
+      border:1px solid #e6eef8;
+      border-radius:18px;
+      padding:16px;
+      background:#fff;
+      box-shadow:0 10px 20px rgba(2,6,23,0.06), 0 0 0 1px rgba(255,255,255,0.9) inset;
+      margin-bottom:16px;
+      transition:all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    details:hover{
+      box-shadow:0 14px 28px rgba(2,6,23,0.10), 0 0 0 1px rgba(255,255,255,1) inset;
+      transform: translateY(-3px);
+      border-color: #d0e3f5;
+    }
+    
+    details[open]{
+      background: linear-gradient(135deg, #ffffff, #fafcff);
+    }
+    
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-weight:800;
+      font-size:15px;
+      color:#0f172a;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      user-select:none;
+      transition: all 0.3s ease;
+      padding: 4px 0;
+    }
+    
+    summary:hover{
+      color:#0ea5e9;
+      transform: translateX(-3px);
+    }
+    
+    summary::marker{display:none}
+    
+    summary::before{
+      content:"▸";
+      transform:translateY(-1px);
+      transition:transform .4s cubic-bezier(0.4, 0, 0.2, 1);
+      color:#0ea5e9;
+      font-size:18px;
+      text-shadow: 0 2px 8px rgba(14,165,233,0.3);
+    }
+    
+    details[open] summary::before{
+      transform:rotate(90deg);
+    }
+
+    .section-content{
+      margin-top:16px;
+      animation: contentFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    @keyframes contentFadeIn{
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    
+    label{
+      display:block;
+      font-size:12px;
+      font-weight:700;
+      color:var(--muted);
+      margin-bottom:7px;
+      text-transform:uppercase;
+      letter-spacing:0.4px;
+    }
+    
+    input,textarea,select,button{
+      font-size:14px;
+      font-family:inherit;
+    }
+    
+    input,textarea,select{
+      width:100%;
+      padding:12px 16px;
+      border-radius:12px;
+      border:1px solid #d6e2ee;
+      transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);
+      background:#fff;
+      box-shadow: 0 2px 8px rgba(2,6,23,0.03);
+    }
+    
+    input:focus,textarea:focus,select:focus{
+      outline:none;
+      border-color:#93c5fd;
+      box-shadow:0 0 0 4px var(--ring), 0 4px 12px rgba(14,165,233,0.15);
+      transform: translateY(-1px);
+    }
+    
+    button{
+      padding:12px 18px;
+      border-radius:12px;
+      border:0;
+      background:var(--brand);
+      color:#fff;
+      cursor:pointer;
+      font-weight:800;
+      box-shadow:0 10px 22px rgba(14,165,233,0.30);
+      transition:all .2s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space:nowrap;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    button::before{
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    button:hover::before{
+      width: 300px;
+      height: 300px;
+    }
+    
+    button:hover{
+      box-shadow:0 14px 32px rgba(14,165,233,0.45);
+      transform:translateY(-3px);
+    }
+    
+    button:active{
+      transform:translateY(0px);
+    }
+    
+    button:disabled{
+      opacity:0.6;
+      cursor:not-allowed;
+      transform: none;
+    }
+    
+    button.ghost{
+      background:#f1f5f9;
+      color:#0f172a;
+      border:1px solid #e2e8f0;
+      box-shadow:0 6px 14px rgba(2,6,23,0.08);
+    }
+    
+    button.ghost:hover{
+      background:#e2e8f0;
+      box-shadow:0 8px 18px rgba(2,6,23,0.12);
+    }
+    
+    button.success{
+      background:linear-gradient(135deg, var(--brand-3), #16a34a);
+      box-shadow:0 10px 22px rgba(34,197,94,0.30);
+    }
+    
+    button.success:hover{
+      box-shadow:0 14px 32px rgba(34,197,94,0.45);
+    }
+    
+    button.warning{
+      background:linear-gradient(135deg, var(--brand-4), #ea580c);
+      box-shadow:0 10px 22px rgba(245,158,11,0.30);
+    }
+    
+    button.warning:hover{
+      box-shadow:0 14px 32px rgba(245,158,11,0.45);
+    }
+    
+    button.danger{
+      background:linear-gradient(135deg, var(--danger), #dc2626);
+      box-shadow:0 10px 22px rgba(239,68,68,0.30);
+    }
+    
+    button.danger:hover{
+      box-shadow:0 14px 32px rgba(239,68,68,0.45);
+    }
+
+    .list{
+      border:1px dashed #cbd5e1;
+      padding:12px;
+      border-radius:14px;
+      max-height:220px;
+      overflow:auto;
+      background:linear-gradient(135deg, #fafbfc, #ffffff);
+    }
+    
+    .list::-webkit-scrollbar{
+      width: 6px;
+    }
+    
+    .list::-webkit-scrollbar-track{
+      background: rgba(241,245,249,0.5);
+      border-radius: 10px;
+    }
+    
+    .list::-webkit-scrollbar-thumb{
+      background: rgba(14,165,233,0.3);
+      border-radius: 10px;
+    }
+    
+    .list-item{
+      padding:12px;
+      border-bottom:1px solid #f1f5f9;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 8px;
+    }
+    
+    .list-item:hover{
+      background:linear-gradient(135deg, #f0f9ff, #e0f2fe);
+      transform: translateX(-4px);
+      box-shadow: 0 4px 12px rgba(14,165,233,0.10);
+    }
+    
+    .list-item:last-child{
+      border-bottom:none;
+    }
+    
+    .hint{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:10px;
+      line-height:1.7;
+      padding: 8px 12px;
+      background: rgba(241,245,249,0.5);
+      border-radius: 8px;
+      border-left: 3px solid #0ea5e9;
+    }
+    
+    .toast{
+      position:fixed;
+      left:28px;
+      bottom:28px;
+      background:linear-gradient(135deg, #0ea5e9, #0284c7);
+      color:white;
+      padding:16px 22px;
+      border-radius:16px;
+      border:1px solid #7dd3fc;
+      box-shadow:0 16px 32px rgba(14,165,233,0.40);
+      display:none;
+      font-weight:700;
+      font-size:14px;
+      z-index:10000;
+      animation:toastSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    @keyframes toastSlideIn{
+      from{
+        transform:translateY(30px) scale(0.9);
+        opacity:0;
+      }
+      to{
+        transform:translateY(0) scale(1);
+        opacity:1;
+      }
+    }
+    
+    .loading{
+      display:inline-block;
+      width:16px;
+      height:16px;
+      border:3px solid rgba(255,255,255,0.3);
+      border-top-color:#fff;
+      border-radius:50%;
+      animation:spin 0.8s linear infinite;
+      margin-left:8px;
+    }
+    
+    @keyframes spin{
+      to{transform:rotate(360deg)}
+    }
+
+    /* لافتات الخريطة */
+    .map-label.leaflet-tooltip{
+      background:rgba(255,255,255,0.98);
+      backdrop-filter:saturate(150%) blur(10px);
+      border:1px solid #e2e8f0;
+      border-radius:999px;
+      padding:8px 18px;
+      font-weight:800;
+      font-size:13px;
+      color:#0f172a;
+      box-shadow:0 10px 24px rgba(2,6,23,0.16);
+      transition: all 0.3s ease;
+    }
+    
+    .map-label:hover{
+      transform: scale(1.05);
+      box-shadow:0 12px 28px rgba(2,6,23,0.20);
+    }
+    
+    .map-label .dot{
+      display:inline-block;
+      width:9px;
+      height:9px;
+      border-radius:50%;
+      margin:0 7px;
+      animation: dotPulse 2.5s ease-in-out infinite;
+      box-shadow: 0 0 8px currentColor;
+    }
+    
+    @keyframes dotPulse{
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+    }
+    
+    .label-school{border-color:#7dd3fc; background: linear-gradient(135deg, rgba(240,249,255,0.98), rgba(224,242,254,0.98));}
+    .label-school .dot{background:#38bdf8}
+    
+    .label-supervisor{border-color:#d8b4fe; background: linear-gradient(135deg, rgba(250,245,255,0.98), rgba(243,232,255,0.98));}
+    .label-supervisor .dot{background:#a78bfa}
+    
+    .map-label .emoji{margin:0 6px 0 0; font-size: 15px;}
+
+    /* تحسين تلميحات نقاط الطلاب */
+    .leaflet-tooltip{
+      border-radius:12px;
+      font-size:12px;
+      font-weight: 700;
+      box-shadow: 0 6px 16px rgba(2,6,23,0.12);
+    }
+    
+    /* أيقونات مخصصة */
+    .icon-box{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:24px;
+      height:24px;
+      border-radius:8px;
+      font-size:14px;
+      margin-left:8px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    
+    summary:hover .icon-box{
+      transform: scale(1.15) rotate(5deg);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+    
+    .icon-school{background:linear-gradient(135deg, #dbeafe, #bfdbfe);color:#0369a1}
+    .icon-supervisor{background:linear-gradient(135deg, #f3e8ff, #e9d5ff);color:#7e22ce}
+    .icon-student{background:linear-gradient(135deg, #dcfce7, #bbf7d0);color:#15803d}
+    .icon-bus{background:linear-gradient(135deg, #fef3c7, #fde68a);color:#b45309}
+    
+    /* تحسينات إضافية */
+    .summary-box{
+      background:linear-gradient(135deg,#f0f9ff,#faf5ff);
+      border:1px solid #e0e7ff;
+      border-radius:16px;
+      padding:18px;
+      margin-top:14px;
+      white-space:pre-wrap;
+      font-size:13px;
+      line-height:1.8;
+      animation: summaryFadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 20px rgba(14,165,233,0.10);
+    }
+    
+    @keyframes summaryFadeIn{
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .route-type-selector{
+      display:flex;
+      gap:10px;
+      margin-bottom:14px;
+    }
+    
+    .route-type-btn{
+      flex:1;
+      padding:14px;
+      border-radius:12px;
+      border:2px solid #e2e8f0;
+      background:#fff;
+      cursor:pointer;
+      font-weight:700;
+      font-size:13px;
+      transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(2,6,23,0.04);
+    }
+    
+    .route-type-btn:hover{
+      border-color:#cbd5e1;
+      background:#f8fafc;
+      transform: translateY(-3px);
+      box-shadow:0 6px 16px rgba(2,6,23,0.08);
+    }
+    
+    .route-type-btn.active{
+      border-color:#0ea5e9;
+      background:linear-gradient(135deg,#f0f9ff,#e0f2fe);
+      color:#0369a1;
+      box-shadow:0 8px 20px rgba(14,165,233,0.20);
+      transform: translateY(-2px);
+    }
+    
+    .file-input-wrapper{
+      position:relative;
+      overflow:hidden;
+      display:inline-block;
+      width:100%;
+    }
+    
+    .file-input-wrapper input[type=file]{
+      position:absolute;
+      left:-9999px;
+    }
+    
+    .file-input-label{
+      display:block;
+      padding:12px 18px;
+      background:#f1f5f9;
+      color:#0f172a;
+      border:1px solid #e2e8f0;
+      border-radius:12px;
+      text-align:center;
+      cursor:pointer;
+      font-weight:800;
+      transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(2,6,23,0.04);
+    }
+    
+    .file-input-label:hover{
+      background:#e2e8f0;
+      box-shadow:0 8px 18px rgba(2,6,23,0.12);
+      transform: translateY(-2px);
+    }
+    
+    /* وضع اختيار النقاط من الخريطة */
+    .map-mode-indicator{
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      background: linear-gradient(135deg, rgba(34,197,94,0.98), rgba(22,163,74,0.98));
+      color: white;
+      padding: 14px 22px;
+      border-radius: 16px;
+      font-weight: 800;
+      font-size: 14px;
+      z-index: 1000;
+      box-shadow: 0 12px 28px rgba(34,197,94,0.45);
+      animation: indicatorSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      display: none;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    @keyframes indicatorSlideIn{
+      from { transform: translateY(-30px) scale(0.9); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    
+    .map-mode-indicator.active{
+      display: block;
+      animation: indicatorPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes indicatorPulse{
+      0%, 100% { box-shadow: 0 12px 28px rgba(34,197,94,0.45); }
+      50% { box-shadow: 0 16px 36px rgba(34,197,94,0.60); }
+    }
+    
+    /* تحسين مظهر علامات الطلاب */
+    .student-marker{
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .student-marker:hover{
+      transform: scale(1.3);
+    }
+    
+    /* تحسين النوافذ المنبثقة */
+    .leaflet-popup-content-wrapper{
+      border-radius: 14px;
+      box-shadow: 0 12px 32px rgba(2,6,23,0.15);
+    }
+    
+    .leaflet-popup-content{
+      margin: 16px;
+    }
+    
+    /* تأثيرات إضافية */
+    @keyframes float{
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+    
+    .header .logo{
+      animation: float 3s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="side">
+    <div class="header">
+      <div class="logo">🚌 نظام مسارات الباصات المتقدم</div>
+      <div class="badge">v3.0 PRO</div>
+    </div>
+
+    <!-- حفظ وتحميل الخطط -->
+    <details open>
+      <summary><span class="icon-box icon-bus">💾</span>إدارة الخطط</summary>
+      <div class="section-content">
+        <div class="row">
+          <button id="savePlan" class="success">حفظ الخطة</button>
+          <div class="file-input-wrapper" style="flex:1">
+            <input type="file" id="loadPlanInput" accept=".json" />
+            <label for="loadPlanInput" class="file-input-label">تحميل خطة</label>
+          </div>
+        </div>
+        <div class="hint">احفظ جميع الإعدادات الحالية في ملف JSON يمكنك تحميله لاحقًا</div>
+      </div>
+    </details>
+
+    <!-- المدرسة والمشرف -->
+    <details open>
+      <summary><span class="icon-box icon-school">🏫</span>المدرسة والمشرف</summary>
+      <div class="section-content">
+        <div style="margin-bottom:12px">
+          <label>موقع المدرسة</label>
+          <input id="school" placeholder="رابط خرائط جوجل أو إحداثيات (lat, lon)" />
+          <div class="hint">مثال: https://maps.google.com/?q=25.285,51.531 أو 25.285, 51.531</div>
+        </div>
+        <div style="margin-bottom:12px">
+          <label>موقع المشرف (نقطة البداية/النهاية)</label>
+          <input id="supervisor" placeholder="رابط خرائط جوجل أو إحداثيات (lat, lon)" />
+          <div class="hint">يمكن استخدامه كنقطة انطلاق أو نقطة نهاية حسب نوع المسار</div>
+        </div>
+        <div class="row">
+          <button id="setMarkersBtn" class="ghost">تثبيت المواقع</button>
+          <button id="useMapBtn" class="ghost">التقاط من الخريطة</button>
+        </div>
+        <div class="hint">يمكنك سحب العلامات على الخريطة مباشرة لتحديث المواقع</div>
+      </div>
+    </details>
+
+    <!-- الطلاب -->
+    <details open>
+      <summary><span class="icon-box icon-student">👥</span>الطلاب</summary>
+      <div class="section-content">
+        <div class="row">
+          <div style="flex:1">
+            <label>الموقع</label>
+            <input id="stuLocation" placeholder="رابط خرائط جوجل أو lat, lon" />
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <label>اسم الطالب (اختياري)</label>
+          <input id="stuName" placeholder="أدخل اسم الطالب" />
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button id="addStudent" class="success">إضافة طالب</button>
+          <button id="pickFromMap" class="ghost">🎯 اختيار من الخريطة</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="clearStudents" class="danger">مسح الكل</button>
+        </div>
+        <div class="hint" style="margin-top:12px">أو ألصق قائمة (سطر لكل طالب: موقع,الاسم)</div>
+        <textarea id="bulk" rows="4" placeholder="https://maps.google.com/?q=25.36,51.47,محمد&#10;25.37,51.49,أحمد&#10;25.285,51.531,فاطمة"></textarea>
+        <div style="margin-top:10px">
+          <button id="addBulk" class="ghost">إضافة بالجملة</button>
+        </div>
+        <div class="list" id="studentsList" style="margin-top:12px"></div>
+      </div>
+    </details>
+
+    <!-- الباصات -->
+    <details open>
+      <summary><span class="icon-box icon-bus">🚍</span>إعدادات الباصات</summary>
+      <div class="section-content">
+        <label>سعات الباصات (مفصولة بفواصل)</label>
+        <input id="busSizes" placeholder="39,39,35,28,12" value="39,39,35" />
+        <div class="hint">سيتم توزيع الطلاب تلقائيًا على الباصات المتاحة بناءً على السعة والموقع</div>
+      </div>
+    </details>
+
+    <!-- خيارات المسار -->
+    <details open>
+      <summary><span class="icon-box" style="background:linear-gradient(135deg, #fef3c7, #fde68a);color:#b45309">🗺️</span>خيارات المسار</summary>
+      <div class="section-content">
+        <label>نوع المسار المطلوب</label>
+        <div class="route-type-selector">
+          <div class="route-type-btn active" data-type="both">
+            <div>كلا المسارين</div>
+            <div style="font-size:11px;font-weight:400;margin-top:3px">صباحي + مسائي</div>
+          </div>
+          <div class="route-type-btn" data-type="morning">
+            <div>صباحي فقط</div>
+            <div style="font-size:11px;font-weight:400;margin-top:3px">من المشرف → المدرسة</div>
+          </div>
+          <div class="route-type-btn" data-type="evening">
+            <div>مسائي فقط</div>
+            <div style="font-size:11px;font-weight:400;margin-top:3px">من المدرسة → المشرف</div>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <label>مزود التوجيه</label>
+          <select id="apiProvider">
+            <option value="osrm">OSRM (افتراضي - مجاني)</option>
+          </select>
+        </div>
+        <div class="hint">المسار الصباحي يبدأ من المشرف ويمر بالطلاب وينتهي بالمدرسة. المسار المسائي يبدأ من المدرسة ويمر بالطلاب وينتهي بالمشرف.</div>
+      </div>
+    </details>
+
+    <!-- تنفيذ الخطة -->
+    <details open>
+      <summary><span class="icon-box" style="background:linear-gradient(135deg, #dcfce7, #bbf7d0);color:#15803d">▶️</span>تنفيذ وتصدير</summary>
+      <div class="section-content">
+        <button id="run" class="warning" style="width:100%;margin-bottom:12px">
+          <span id="runText">🚀 توليد المسارات</span>
+        </button>
+        <div class="row">
+          <button id="exportCsv" class="ghost">تصدير CSV</button>
+          <button id="exportXlsx" class="ghost">تصدير Excel</button>
+        </div>
+        <div id="summary" class="summary-box" style="display:none"></div>
+      </div>
+    </details>
+
+    <!-- روابط Google Maps -->
+    <details>
+      <summary><span class="icon-box" style="background:linear-gradient(135deg, #fef3c7, #fde68a);color:#b45309">🔗</span>روابط Google Maps</summary>
+      <div class="section-content">
+        <div id="gmaps"></div>
+      </div>
+    </details>
+  </div>
+
+  <div style="position:relative">
+    <div id="mapModeIndicator" class="map-mode-indicator">
+      🎯 انقر على الخريطة لإضافة طالب
+    </div>
+    <div id="map"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
+<script>
+/* ==================== أدوات مساعدة ==================== */
+function toNum(x){return Number(String(x||'').trim())}
+
+function haversine(a,b){ // km
+  const R=6371, toRad=t=>t*Math.PI/180;
+  const dLat = toRad(b.lat - a.lat), dLon = toRad(b.lon - a.lon);
+  const la1 = toRad(a.lat), la2 = toRad(b.lat);
+  const h = Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+
+function toast(msg,timeout=2500){ 
+  const t=document.getElementById('toast'); 
+  t.textContent=msg; 
+  t.style.display='block'; 
+  setTimeout(()=>t.style.display='none', timeout); 
+}
+
+/* ==================== استخلاص الإحداثيات من روابط جوجل - محسّن ==================== */
+function extractCoordsFromGoogleMapsUrl(url){
+  // تنظيف النص
+  url = String(url || '').trim();
+  
+  // إذا كان النص يحتوي على إحداثيات مباشرة (lat, lon)
+  const directMatch = url.match(/^[\s]*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)[\s]*$/);
+  if(directMatch){
+    return {lat: parseFloat(directMatch[1]), lon: parseFloat(directMatch[2])};
+  }
+  
+  // نمط 1: @lat,lon
+  const pattern1 = /@(-?\d+\.?\d*),(-?\d+\.?\d*)/;
+  const match1 = url.match(pattern1);
+  if(match1){
+    return {lat: parseFloat(match1[1]), lon: parseFloat(match1[2])};
+  }
+  
+  // نمط 2: !3d و !4d
+  const pattern2 = /!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/;
+  const match2 = url.match(pattern2);
+  if(match2){
+    return {lat: parseFloat(match2[1]), lon: parseFloat(match2[2])};
+  }
+  
+  // نمط 3: ll= أو query=
+  const pattern3 = /[?&](ll|query)=(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)/;
+  const match3 = url.match(pattern3);
+  if(match3){
+    return {lat: parseFloat(match3[2]), lon: parseFloat(match3[3])};
+  }
+  
+  // نمط 4: /place/ مع إحداثيات
+  const pattern4 = /\/place\/[^/]*@(-?\d+\.?\d*),(-?\d+\.?\d*)/;
+  const match4 = url.match(pattern4);
+  if(match4){
+    return {lat: parseFloat(match4[1]), lon: parseFloat(match4[2])};
+  }
+  
+  return null;
+}
+
+/* ==================== الخريطة ==================== */
+const map = L.map('map',{zoomControl:true}).setView([25.285,51.531],12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19, 
+  attribution:'© OpenStreetMap'
+}).addTo(map);
+
+let school = {lat:25.285, lon:51.531};
+let supervisor = {lat:25.300, lon:51.500};
+let mapPickMode = false; // وضع اختيار النقاط من الخريطة
+
+// مُنشئ لافتة دائمة
+function bindPrettyPermanentLabel(marker, html, cls){
+  marker.bindTooltip(html, {
+    permanent:true,
+    direction:'top',
+    offset:[0,-30],
+    className:'map-label '+cls
+  });
+}
+
+const schoolMarker = L.marker([school.lat, school.lon], {
+  draggable:true, 
+  riseOnHover:true
+}).addTo(map).bindPopup('📍 المدرسة');
+
+bindPrettyPermanentLabel(
+  schoolMarker, 
+  '<span class="emoji">🏫</span><span class="dot"></span> المدرسة', 
+  'label-school'
+);
+
+const supMarker = L.marker([supervisor.lat, supervisor.lon], {
+  draggable:true, 
+  riseOnHover:true, 
+  opacity:0.92
+}).addTo(map).bindPopup('🧑‍🏫 المشرف');
+
+bindPrettyPermanentLabel(
+  supMarker, 
+  '<span class="emoji">🧭</span><span class="dot"></span> المشرف', 
+  'label-supervisor'
+);
+
+schoolMarker.on('dragend', ()=> {
+  const p = schoolMarker.getLatLng(); 
+  school = {lat:p.lat, lon:p.lng};
+  document.getElementById('school').value = `${school.lat.toFixed(6)}, ${school.lon.toFixed(6)}`;
+});
+
+supMarker.on('dragend', ()=> {
+  const p = supMarker.getLatLng(); 
+  supervisor = {lat:p.lat, lon:p.lng};
+  document.getElementById('supervisor').value = `${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;
+});
+
+/* ==================== الطلاب ==================== */
+let students = []; // {lat,lon,name}
+let studentMarkers = [];
+let routeLayers = [];
+let lastRoutes = []; // [{type, busId, stops, geometry, distance_m, duration_s}]
+
+function clearStudentMarkers(){
+  studentMarkers.forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
+  studentMarkers = [];
+}
+
+function renderStudentMarkers(){
+  clearStudentMarkers();
+  students.forEach((s, idx) => {
+    const marker = L.circleMarker([s.lat, s.lon], {
+      radius:9, 
+      color:'#0f172a', 
+      fillColor:'#22c55e', 
+      fillOpacity:0.92, 
+      weight:2.5,
+      className: 'student-marker'
+    }).addTo(map);
+    
+    marker.bindTooltip(
+      `${s.name? s.name : 'طالب'} · ${idx+1}`, 
+      {permanent:false, direction:'top', offset:[0, -10]}
+    );
+
+    const popupId = `popup-del-${idx}-${Date.now()}`;
+    marker.bindPopup(
+      `<div style="min-width:220px;padding:6px">
+         <div style="font-weight:800;font-size:15px;margin-bottom:8px;color:#0f172a">طالب ${idx+1}</div>
+         <div style="font-size:14px;margin:8px 0;color:#475569">${s.name? s.name : '<i>بدون اسم</i>'}</div>
+         <div style="font-size:11px;color:#64748b;margin-bottom:12px">${s.lat.toFixed(6)}, ${s.lon.toFixed(6)}</div>
+         <button id="${popupId}" style="padding:10px 14px;border-radius:10px;border:0;background:#ef4444;color:#fff;cursor:pointer;font-weight:700;width:100%;transition:all 0.2s ease">حذف</button>
+       </div>`
+    );
+
+    marker.on('popupopen', ()=>{
+      const btn = document.getElementById(popupId);
+      if(btn){ 
+        btn.onmouseenter = function(){ this.style.background = '#dc2626'; this.style.transform = 'translateY(-2px)'; };
+        btn.onmouseleave = function(){ this.style.background = '#ef4444'; this.style.transform = ''; };
+        btn.onclick = function(){ 
+          deleteStudent(idx); 
+          map.closePopup();
+        }; 
+      }
+    });
+
+    studentMarkers.push(marker);
+  });
+
+  const list = document.getElementById('studentsList');
+  if(students.length===0){
+    list.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:24px;font-size:13px">لا يوجد طلاب مضافين</div>';
+  } else {
+    list.innerHTML = students.map((s,i)=>
+      `<div class="list-item">
+         <div>
+           <strong style="color:#0f172a;font-size:14px">${i+1}. ${s.name||'—'}</strong>
+           <div style="font-size:11px;color:#64748b;margin-top:3px">${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}</div>
+         </div>
+       </div>`
+    ).join('');
+  }
+}
+
+function deleteStudent(idx){
+  if(idx<0 || idx>=students.length) return;
+  students.splice(idx,1);
+  clearRouteLayers();
+  renderStudentMarkers();
+  toast('✅ تم حذف الطالب');
+}
+
+/* ==================== وضع اختيار النقاط من الخريطة ==================== */
+function toggleMapPickMode(){
+  mapPickMode = !mapPickMode;
+  const indicator = document.getElementById('mapModeIndicator');
+  const btn = document.getElementById('pickFromMap');
+  const mapEl = document.getElementById('map');
+  
+  if(mapPickMode){
+    indicator.classList.add('active');
+    btn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+    btn.style.color = '#fff';
+    btn.textContent = '✓ إلغاء الاختيار';
+    mapEl.classList.add('pick-mode');
+    map.getContainer().style.cursor = 'crosshair';
+  } else {
+    indicator.classList.remove('active');
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.textContent = '🎯 اختيار من الخريطة';
+    mapEl.classList.remove('pick-mode');
+    map.getContainer().style.cursor = '';
+  }
+}
+
+// معالج النقر على الخريطة
+map.on('click', function(e){
+  if(!mapPickMode) return;
+  
+  const lat = e.latlng.lat;
+  const lon = e.latlng.lng;
+  
+  // طلب اسم الطالب
+  const name = prompt('أدخل اسم الطالب (اختياري):') || '';
+  
+  students.push({lat, lon, name});
+  renderStudentMarkers();
+  toast('✅ تمت إضافة الطالب من الخريطة');
+  
+  // إيقاف وضع الاختيار بعد الإضافة
+  toggleMapPickMode();
+});
+
+document.getElementById('pickFromMap').onclick = toggleMapPickMode;
+
+/* ==================== أزرار الإدخال ==================== */
+document.getElementById('setMarkersBtn').onclick = ()=>{
+  const sVal = document.getElementById('school').value.trim();
+  if(sVal){
+    const coords = extractCoordsFromGoogleMapsUrl(sVal);
+    if(coords){
+      school = coords;
+      schoolMarker.setLatLng([school.lat, school.lon]);
+      map.setView([school.lat, school.lon], 13);
+      toast('✅ تم تحديث موقع المدرسة');
+    } else {
+      alert('تعذر استخلاص إحداثيات المدرسة. تأكد من الرابط أو الإحداثيات.');
+    }
+  }
+  
+  const suVal = document.getElementById('supervisor').value.trim();
+  if(suVal){
+    const coords = extractCoordsFromGoogleMapsUrl(suVal);
+    if(coords){
+      supervisor = coords;
+      supMarker.setLatLng([supervisor.lat, supervisor.lon]);
+      supMarker.setOpacity(0.98);
+      toast('✅ تم تحديث موقع المشرف');
+    } else {
+      alert('تعذر استخلاص إحداثيات المشرف. تأكد من الرابط أو الإحداثيات.');
+    }
+  }
+};
+
+document.getElementById('useMapBtn').onclick = ()=>{
+  const g = schoolMarker.getLatLng();
+  document.getElementById('school').value = `${g.lat.toFixed(6)}, ${g.lng.toFixed(6)}`;
+  const h = supMarker.getLatLng();
+  document.getElementById('supervisor').value = `${h.lat.toFixed(6)}, ${h.lng.toFixed(6)}`;
+  school = {lat:g.lat, lon:g.lng};
+  supervisor = {lat:h.lat, lon:h.lng};
+  toast('✅ تم التقاط المواقع من الخريطة');
+};
+
+document.getElementById('addStudent').onclick = ()=>{
+  const locVal = document.getElementById('stuLocation').value.trim();
+  const name = document.getElementById('stuName').value.trim();
+  
+  if(!locVal){ 
+    alert('أدخل موقع الطالب (رابط أو إحداثيات)'); 
+    return; 
+  }
+  
+  const coords = extractCoordsFromGoogleMapsUrl(locVal);
+  if(!coords){ 
+    alert('تعذر استخلاص الإحداثيات. تأكد من الرابط أو الصيغة.'); 
+    return; 
+  }
+  
+  students.push({lat:coords.lat, lon:coords.lon, name: name || ''});
+  renderStudentMarkers();
+  document.getElementById('stuLocation').value='';
+  document.getElementById('stuName').value='';
+  toast('✅ تمت إضافة الطالب');
+};
+
+document.getElementById('clearStudents').onclick = ()=>{
+  if(!confirm('هل أنت متأكد أنك تريد مسح جميع الطلاب؟')) return;
+  students = [];
+  clearStudentMarkers();
+  renderStudentMarkers();
+  clearRouteLayers();
+  toast('✅ تم مسح جميع الطلاب');
+};
+
+/* ==================== إضافة بالجملة - محسّنة ==================== */
+document.getElementById('addBulk').onclick = ()=>{
+  const raw = document.getElementById('bulk').value;
+  const lines = raw.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  let cnt=0;
+  let errors = [];
+  
+  for(let lineNum = 0; lineNum < lines.length; lineNum++){
+    const line = lines[lineNum];
+    
+    // محاولة فصل الموقع عن الاسم
+    // نبحث عن آخر فاصلة في السطر
+    const lastCommaIdx = line.lastIndexOf(',');
+    
+    if(lastCommaIdx === -1){
+      // لا توجد فاصلة، نحاول استخلاص الإحداثيات من السطر كاملاً
+      const coords = extractCoordsFromGoogleMapsUrl(line);
+      if(coords){
+        students.push({lat:coords.lat, lon:coords.lon, name:''});
+        cnt++;
+      } else {
+        errors.push(`السطر ${lineNum+1}: تعذر استخلاص الإحداثيات`);
+      }
+    } else {
+      // نفصل الموقع عن الاسم
+      const locationPart = line.substring(0, lastCommaIdx).trim();
+      const namePart = line.substring(lastCommaIdx + 1).trim();
+      
+      const coords = extractCoordsFromGoogleMapsUrl(locationPart);
+      if(coords){
+        students.push({lat:coords.lat, lon:coords.lon, name:namePart});
+        cnt++;
+      } else {
+        // ربما الفاصلة جزء من الرابط، نحاول السطر كاملاً
+        const coords2 = extractCoordsFromGoogleMapsUrl(line);
+        if(coords2){
+          students.push({lat:coords2.lat, lon:coords2.lon, name:''});
+          cnt++;
+        } else {
+          errors.push(`السطر ${lineNum+1}: تعذر استخلاص الإحداثيات`);
+        }
+      }
+    }
+  }
+  
+  document.getElementById('bulk').value='';
+  renderStudentMarkers();
+  
+  if(errors.length > 0){
+    toast(`✅ أضيف ${cnt} طالب، ⚠️ ${errors.length} خطأ`, 3500);
+    console.warn('أخطاء الإضافة بالجملة:', errors);
+  } else {
+    toast(`✅ أضيف ${cnt} طالب بنجاح`);
+  }
+};
+
+/* ==================== اختيار نوع المسار ==================== */
+let selectedRouteType = 'both'; // 'both', 'morning', 'evening'
+
+document.querySelectorAll('.route-type-btn').forEach(btn => {
+  btn.onclick = function(){
+    document.querySelectorAll('.route-type-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    selectedRouteType = this.getAttribute('data-type');
+  };
+});
+
+/* ==================== رسم المسارات ==================== */
+function clearRouteLayers(){
+  routeLayers.forEach(l=>{ if(map.hasLayer(l)) map.removeLayer(l); });
+  routeLayers = [];
+  lastRoutes = [];
+  document.getElementById('summary').style.display='none';
+  document.getElementById('gmaps').innerHTML='';
+}
+
+function drawRouteGeoJSON(geojson, color='#0f172a'){
+  const layer = L.geoJSON(geojson, {
+    style:{color:color, weight:6, opacity:0.88, lineJoin:'round', lineCap:'round'}
+  }).addTo(map);
+  routeLayers.push(layer);
+  try{ 
+    map.fitBounds(layer.getBounds(), {padding:[60,60]}); 
+  }catch(e){}
+}
+
+/* ==================== الحصول على مصفوفة المسافات الحقيقية من OSRM ==================== */
+async function buildRealDistanceMatrix(points){
+  const n = points.length;
+  const M = Array.from({length:n}, ()=> new Array(n).fill(0));
+  
+  // إذا كانت النقاط قليلة، نستخدم OSRM table API
+  if(n <= 100){
+    try{
+      const coords = points.map(p => `${p.lon},${p.lat}`).join(';');
+      const url = `https://router.project-osrm.org/table/v1/driving/${coords}?annotations=distance`;
+      
+      const resp = await fetch(url);
+      if(resp.ok){
+        const data = await resp.json();
+        if(data.code === 'Ok' && data.distances){
+          // تحويل المسافات من متر إلى كيلومتر
+          for(let i=0; i<n; i++){
+            for(let j=0; j<n; j++){
+              M[i][j] = data.distances[i][j] / 1000;
+            }
+          }
+          return M;
+        }
+      }
+    }catch(e){
+      console.warn('فشل الحصول على المسافات الحقيقية، استخدام Haversine كبديل:', e);
+    }
+  }
+  
+  // إذا فشل OSRM أو كانت النقاط كثيرة، نستخدم Haversine كبديل
+  for(let i=0;i<n;i++){
+    for(let j=0;j<n;j++){
+      if(i===j) M[i][j]=0; 
+      else M[i][j] = haversine(points[i], points[j]);
+    }
+  }
+  return M;
+}
+
+/* ==================== خوارزمية الترتيب (NN + 2-opt) محسّنة ==================== */
+function nearestNeighborOrder(M, start=0){
+  const n=M.length, used = Array(n).fill(false); 
+  used[start]=true; 
+  const order=[start];
+  
+  for(let k=1;k<n;k++){
+    const last = order[order.length-1];
+    let best=-1, bestD=1e18;
+    for(let j=0;j<n;j++) {
+      if(!used[j] && M[last][j] < bestD){ 
+        best=j; 
+        bestD=M[last][j]; 
+      }
+    }
+    if(best===-1) break;
+    used[best]=true; 
+    order.push(best);
+  }
+  return order;
+}
+
+function twoOptImprove(order, M){
+  const n = order.length;
+  let improved = true;
+  let iterations = 0;
+  const maxIterations = 100; // حد أقصى للتكرارات لتجنب التعليق
+  
+  while(improved && iterations < maxIterations){
+    improved = false;
+    iterations++;
+    
+    for(let i=0; i<n-1; i++){
+      for(let j=i+2; j<n; j++){
+        if(j >= n) continue;
+        
+        const a=order[i], b=order[i+1];
+        const c=order[j];
+        const d = (j+1 < n) ? order[j+1] : order[0];
+        
+        const before = M[a][b] + M[c][d];
+        const after = M[a][c] + M[b][d];
+        
+        if(after < before - 1e-9){
+          // عكس الجزء بين i+1 و j
+          const seg = order.slice(i+1, j+1).reverse();
+          order.splice(i+1, j-i, ...seg);
+          improved = true;
+        }
+      }
+    }
+  }
+  return order;
+}
+
+async function optimizeRoute(points, startIdx=0){
+  if(points.length<=1) return [0];
+  
+  // الحصول على مصفوفة المسافات الحقيقية
+  const M = await buildRealDistanceMatrix(points);
+  
+  // ترتيب النقاط باستخدام Nearest Neighbor
+  let order = nearestNeighborOrder(M, startIdx);
+  
+  // تحسين الترتيب باستخدام 2-opt
+  order = twoOptImprove(order, M);
+  
+  return order;
+}
+
+/* ==================== توزيع الطلاب على الباصات (K-Means مبسط) ==================== */
+function kMeansClustering(points, k){
+  if(points.length === 0) return [];
+  if(k >= points.length){
+    return points.map((p,i) => ({clusterId:i, points:[p]}));
+  }
+  
+  // اختيار مراكز عشوائية
+  const centers = [];
+  const used = new Set();
+  while(centers.length < k){
+    const idx = Math.floor(Math.random() * points.length);
+    if(!used.has(idx)){
+      centers.push({lat:points[idx].lat, lon:points[idx].lon});
+      used.add(idx);
+    }
+  }
+  
+  // تكرار حتى الاستقرار (حد أقصى 50 تكرار)
+  let maxIter = 50;
+  let changed = true;
+  let assignments = new Array(points.length).fill(0);
+  
+  while(changed && maxIter-- > 0){
+    changed = false;
+    
+    // تعيين كل نقطة لأقرب مركز
+    for(let i=0; i<points.length; i++){
+      let minDist = Infinity;
+      let bestCluster = 0;
+      for(let c=0; c<centers.length; c++){
+        const dist = haversine(points[i], centers[c]);
+        if(dist < minDist){
+          minDist = dist;
+          bestCluster = c;
+        }
+      }
+      if(assignments[i] !== bestCluster){
+        assignments[i] = bestCluster;
+        changed = true;
+      }
+    }
+    
+    // إعادة حساب المراكز
+    for(let c=0; c<centers.length; c++){
+      const clusterPoints = points.filter((p,i) => assignments[i] === c);
+      if(clusterPoints.length > 0){
+        const avgLat = clusterPoints.reduce((sum,p) => sum + p.lat, 0) / clusterPoints.length;
+        const avgLon = clusterPoints.reduce((sum,p) => sum + p.lon, 0) / clusterPoints.length;
+        centers[c] = {lat:avgLat, lon:avgLon};
+      }
+    }
+  }
+  
+  // تجميع النتائج
+  const clusters = [];
+  for(let c=0; c<k; c++){
+    const clusterPoints = points.filter((p,i) => assignments[i] === c);
+    if(clusterPoints.length > 0){
+      clusters.push({clusterId:c, points:clusterPoints});
+    }
+  }
+  
+  return clusters;
+}
+
+function distributeStudentsToBuses(students, busSizes){
+  if(students.length === 0) return [];
+  
+  const numBuses = busSizes.length;
+  if(numBuses === 0) return [{busId:0, students:students}];
+  if(numBuses === 1) return [{busId:0, students:students}];
+  
+  // استخدام K-Means لتوزيع الطلاب
+  const clusters = kMeansClustering(students, numBuses);
+  
+  // تعيين الطلاب للباصات مع مراعاة السعة
+  const buses = busSizes.map((size, idx) => ({
+    busId: idx,
+    capacity: size,
+    students: []
+  }));
+  
+  clusters.forEach((cluster, idx) => {
+    if(idx < buses.length){
+      buses[idx].students = cluster.points;
+    }
+  });
+  
+  // إعادة توزيع الطلاب الزائدين عن السعة
+  for(let i=0; i<buses.length; i++){
+    while(buses[i].students.length > buses[i].capacity){
+      const overflow = buses[i].students.pop();
+      // محاولة إضافته لباص آخر
+      let added = false;
+      for(let j=0; j<buses.length; j++){
+        if(buses[j].students.length < buses[j].capacity){
+          buses[j].students.push(overflow);
+          added = true;
+          break;
+        }
+      }
+      if(!added){
+        // إذا لم يكن هناك مكان، أضفه مرة أخرى (تجاوز السعة)
+        buses[i].students.push(overflow);
+        break;
+      }
+    }
+  }
+  
+  return buses.filter(b => b.students.length > 0);
+}
+
+/* ==================== استدعاء OSRM ==================== */
+async function fetchOSRMRoute(coords){
+  // coords = [{lat, lon}, ...]
+  if(coords.length < 2) return null;
+  
+  const coordsStr = coords.map(c => `${c.lon},${c.lat}`).join(';');
+  const url = `https://router.project-osrm.org/route/v1/driving/${coordsStr}?overview=full&geometries=geojson`;
+  
+  try{
+    const resp = await fetch(url);
+    if(!resp.ok) return null;
+    const data = await resp.json();
+    if(data.code !== 'Ok' || !data.routes || data.routes.length === 0) return null;
+    
+    const route = data.routes[0];
+    return {
+      geometry: route.geometry,
+      distance_m: route.distance,
+      duration_s: route.duration
+    };
+  }catch(e){
+    console.error('OSRM error:', e);
+    return null;
+  }
+}
+
+/* ==================== توليد المسارات ==================== */
+async function generateRoutes(){
+  if(students.length === 0){
+    alert('أضف طلابًا أولاً');
+    return;
+  }
+  
+  clearRouteLayers();
+  
+  const runBtn = document.getElementById('run');
+  const runText = document.getElementById('runText');
+  runBtn.disabled = true;
+  runText.innerHTML = '⏳ جاري التوليد... <span class="loading"></span>';
+  
+  try{
+    // قراءة سعات الباصات
+    const busSizesStr = document.getElementById('busSizes').value.trim();
+    const busSizes = busSizesStr ? busSizesStr.split(',').map(s => parseInt(s.trim())).filter(n => n>0) : [50];
+    
+    // توزيع الطلاب على الباصات
+    runText.innerHTML = '⏳ توزيع الطلاب على الباصات... <span class="loading"></span>';
+    const buses = distributeStudentsToBuses(students, busSizes);
+    
+    lastRoutes = [];
+    let summaryText = '';
+    
+    // توليد المسارات حسب النوع المختار
+    const colors = ['#0ea5e9', '#a855f7', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+    
+    const totalRoutes = buses.length * (selectedRouteType === 'both' ? 2 : 1);
+    let currentRoute = 0;
+    
+    for(let busIdx=0; busIdx < buses.length; busIdx++){
+      const bus = buses[busIdx];
+      const busStudents = bus.students;
+      
+      if(busStudents.length === 0) continue;
+      
+      const color = colors[busIdx % colors.length];
+      
+      // المسار الصباحي (من المشرف → الطلاب → المدرسة)
+      if(selectedRouteType === 'both' || selectedRouteType === 'morning'){
+        currentRoute++;
+        runText.innerHTML = `⏳ حساب المسار ${currentRoute}/${totalRoutes} (باص ${busIdx+1} صباحي)... <span class="loading"></span>`;
+        
+        const morningPoints = [supervisor, ...busStudents];
+        
+        // حساب الترتيب الأمثل باستخدام المسافات الحقيقية
+        const morningOrder = await optimizeRoute(morningPoints, 0);
+        const morningSequence = morningOrder.map(i => morningPoints[i]);
+        morningSequence.push(school); // إضافة المدرسة في النهاية
+        
+        const morningRoute = await fetchOSRMRoute(morningSequence);
+        
+        if(morningRoute){
+          drawRouteGeoJSON(morningRoute.geometry, color);
+          lastRoutes.push({
+            type: 'صباحي',
+            busId: busIdx + 1,
+            stops: morningSequence,
+            geometry: morningRoute.geometry,
+            distance_m: morningRoute.distance_m,
+            duration_s: morningRoute.duration_s
+          });
+          
+          summaryText += `🚌 باص ${busIdx+1} (صباحي): ${busStudents.length} طالب، ${(morningRoute.distance_m/1000).toFixed(2)} كم، ${(morningRoute.duration_s/60).toFixed(1)} دقيقة\n`;
+        }
+      }
+      
+      // المسار المسائي (من المدرسة → الطلاب → المشرف)
+      if(selectedRouteType === 'both' || selectedRouteType === 'evening'){
+        currentRoute++;
+        runText.innerHTML = `⏳ حساب المسار ${currentRoute}/${totalRoutes} (باص ${busIdx+1} مسائي)... <span class="loading"></span>`;
+        
+        const eveningPoints = [school, ...busStudents];
+        
+        // حساب الترتيب الأمثل باستخدام المسافات الحقيقية
+        const eveningOrder = await optimizeRoute(eveningPoints, 0);
+        const eveningSequence = eveningOrder.map(i => eveningPoints[i]);
+        eveningSequence.push(supervisor); // إضافة المشرف في النهاية
+        
+        const eveningRoute = await fetchOSRMRoute(eveningSequence);
+        
+        if(eveningRoute){
+          // استخدام لون مختلف قليلاً للمسار المسائي
+          const eveningColor = color + 'AA'; // شفافية
+          drawRouteGeoJSON(eveningRoute.geometry, eveningColor);
+          lastRoutes.push({
+            type: 'مسائي',
+            busId: busIdx + 1,
+            stops: eveningSequence,
+            geometry: eveningRoute.geometry,
+            distance_m: eveningRoute.distance_m,
+            duration_s: eveningRoute.duration_s
+          });
+          
+          summaryText += `🚌 باص ${busIdx+1} (مسائي): ${busStudents.length} طالب، ${(eveningRoute.distance_m/1000).toFixed(2)} كم، ${(eveningRoute.duration_s/60).toFixed(1)} دقيقة\n`;
+        }
+      }
+    }
+    
+    // عرض الملخص
+    const summaryBox = document.getElementById('summary');
+    summaryBox.textContent = summaryText || 'تم توليد المسارات بنجاح';
+    summaryBox.style.display = 'block';
+    
+    // توليد روابط Google Maps
+    generateGoogleMapsLinks();
+    
+    toast('✅ تم توليد المسارات بنجاح باستخدام المسافات الحقيقية');
+    
+  }catch(e){
+    console.error(e);
+    alert('حدث خطأ أثناء توليد المسارات: ' + e.message);
+  }finally{
+    runBtn.disabled = false;
+    runText.innerHTML = '🚀 توليد المسارات';
+  }
+}
+
+document.getElementById('run').onclick = generateRoutes;
+
+/* ==================== وظيفة إظهار الموقع على الخريطة ==================== */
+let locationMarkers = {}; // لحفظ العلامات المؤقتة
+
+function showLocationOnMap(lat, lon, name, stopNumber, busId, routeType){
+  // إزالة أي علامة مؤقتة سابقة
+  if(locationMarkers.temp){
+    map.removeLayer(locationMarkers.temp);
+  }
+  
+  // إنشاء علامة مؤقتة بلون مميز
+  const tempMarker = L.circleMarker([lat, lon], {
+    radius: 14,
+    color: '#ffffff',
+    fillColor: '#f59e0b',
+    fillOpacity: 0.95,
+    weight: 3
+  }).addTo(map);
+  
+  // إضافة أنيميشن نبض
+  let pulseCount = 0;
+  const pulseInterval = setInterval(() => {
+    if(pulseCount < 3){
+      tempMarker.setRadius(18);
+      setTimeout(() => tempMarker.setRadius(14), 200);
+      pulseCount++;
+    } else {
+      clearInterval(pulseInterval);
+    }
+  }, 400);
+  
+  // إظهار نافذة منبثقة
+  tempMarker.bindPopup(
+    `<div style="padding:8px;min-width:200px">
+       <div style="font-weight:800;font-size:15px;color:#0f172a;margin-bottom:8px">
+         📍 نقطة ${stopNumber}
+       </div>
+       <div style="font-size:14px;color:#475569;margin:6px 0">
+         <strong>${name || 'بدون اسم'}</strong>
+       </div>
+       <div style="font-size:12px;color:#64748b;margin:6px 0">
+         🚌 باص ${busId} (${routeType})
+       </div>
+       <div style="font-size:11px;color:#94a3b8;margin-top:8px">
+         ${lat.toFixed(6)}, ${lon.toFixed(6)}
+       </div>
+     </div>`,
+    {closeButton: true}
+  ).openPopup();
+  
+  // التحرك إلى الموقع بسلاسة
+  map.flyTo([lat, lon], 16, {
+    duration: 1.5,
+    easeLinearity: 0.25
+  });
+  
+  // حفظ العلامة المؤقتة
+  locationMarkers.temp = tempMarker;
+  
+  // إزالة العلامة بعد 10 ثواني
+  setTimeout(() => {
+    if(locationMarkers.temp === tempMarker){
+      map.removeLayer(tempMarker);
+      locationMarkers.temp = null;
+    }
+  }, 10000);
+}
+
+/* ==================== روابط Google Maps ==================== */
+function generateGoogleMapsLinks(){
+  const box = document.getElementById('gmaps');
+  box.innerHTML = '';
+  
+  if(lastRoutes.length === 0) return;
+  
+  lastRoutes.forEach((route, idx) => {
+    const wrap = document.createElement('div');
+    wrap.style.marginBottom = '18px';
+    wrap.style.padding = '16px';
+    wrap.style.background = 'linear-gradient(135deg, #f8fafc, #ffffff)';
+    wrap.style.borderRadius = '14px';
+    wrap.style.border = '1px solid #e2e8f0';
+    wrap.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    wrap.style.boxShadow = '0 4px 12px rgba(2,6,23,0.04)';
+    wrap.onmouseenter = function(){ 
+      this.style.boxShadow = '0 10px 24px rgba(2,6,23,0.10)'; 
+      this.style.transform = 'translateY(-2px)';
+    };
+    wrap.onmouseleave = function(){ 
+      this.style.boxShadow = '0 4px 12px rgba(2,6,23,0.04)'; 
+      this.style.transform = '';
+    };
+    
+    const title = document.createElement('div');
+    title.style.fontWeight = '800';
+    title.style.marginBottom = '12px';
+    title.style.color = '#0f172a';
+    title.style.fontSize = '15px';
+    title.textContent = `🚌 باص ${route.busId} (${route.type})`;
+    wrap.appendChild(title);
+    
+    const seq = route.stops;
+    const waypointsStr = seq.map(p => `${p.lat},${p.lon}`).join('/');
+    const directionsUrl = `https://www.google.com/maps/dir/${waypointsStr}`;
+    
+    const a = document.createElement('a');
+    a.href = directionsUrl;
+    a.target = '_blank';
+    a.rel = 'noreferrer';
+    a.textContent = '🗺️ فتح المسار الكامل في خرائط جوجل';
+    a.style.display = 'inline-block';
+    a.style.padding = '11px 16px';
+    a.style.background = 'linear-gradient(135deg, #0ea5e9, #0284c7)';
+    a.style.color = '#fff';
+    a.style.borderRadius = '11px';
+    a.style.textDecoration = 'none';
+    a.style.fontWeight = '700';
+    a.style.fontSize = '13px';
+    a.style.marginBottom = '12px';
+    a.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    a.style.boxShadow = '0 6px 16px rgba(14,165,233,0.25)';
+    a.onmouseenter = function(){ 
+      this.style.transform = 'translateY(-3px)'; 
+      this.style.boxShadow = '0 10px 24px rgba(14,165,233,0.40)'; 
+    };
+    a.onmouseleave = function(){ 
+      this.style.transform = ''; 
+      this.style.boxShadow = '0 6px 16px rgba(14,165,233,0.25)'; 
+    };
+    wrap.appendChild(a);
+    
+    const table = document.createElement('table');
+    table.style.marginTop = '12px';
+    table.style.width = '100%';
+    table.style.fontSize = '12px';
+    table.style.borderCollapse = 'separate';
+    table.style.borderSpacing = '0 4px';
+    
+    seq.forEach((p, pidx) => {
+      const tr = document.createElement('tr');
+      tr.style.transition = 'all 0.2s ease';
+      tr.style.borderRadius = '8px';
+      tr.style.cursor = 'pointer';
+      tr.onmouseenter = function(){ 
+        this.style.background = 'linear-gradient(135deg, #f0f9ff, #e0f2fe)'; 
+      };
+      tr.onmouseleave = function(){ 
+        this.style.background = ''; 
+      };
+      
+      // عند الضغط على الصف، إظهار الموقع على الخريطة
+      tr.onclick = function(e){
+        // منع الحدث إذا كان الضغط على الرابط
+        if(e.target.tagName === 'A') return;
+        showLocationOnMap(p.lat, p.lon, p.name, pidx + 1, route.busId, route.type);
+      };
+      
+      const tdNum = document.createElement('td');
+      tdNum.textContent = pidx + 1;
+      tdNum.style.fontWeight = '800';
+      tdNum.style.padding = '8px 10px';
+      tdNum.style.color = '#64748b';
+      tdNum.style.width = '40px';
+      
+      const tdName = document.createElement('td');
+      tdName.textContent = p.name || '—';
+      tdName.style.padding = '8px 10px';
+      tdName.style.fontWeight = '600';
+      tdName.style.color = '#0f172a';
+      
+      const tdLink = document.createElement('td');
+      const link = document.createElement('a');
+      link.href = `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`;
+      link.target = '_blank';
+      link.rel = 'noreferrer';
+      link.textContent = `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}`;
+      link.style.color = '#0ea5e9';
+      link.style.textDecoration = 'none';
+      link.style.transition = 'color 0.2s ease';
+      link.style.fontWeight = '600';
+      link.onmouseenter = function(){ this.style.color = '#0369a1'; };
+      link.onmouseleave = function(){ this.style.color = '#0ea5e9'; };
+      tdLink.appendChild(link);
+      tdLink.style.padding = '8px 10px';
+      
+      tr.appendChild(tdNum);
+      tr.appendChild(tdName);
+      tr.appendChild(tdLink);
+      table.appendChild(tr);
+    });
+    
+    wrap.appendChild(table);
+    box.appendChild(wrap);
+  });
+}
+
+/* ==================== تصدير CSV ==================== */
+document.getElementById('exportCsv').onclick = ()=>{
+  if(!lastRoutes || lastRoutes.length===0){ 
+    alert('نفّذ التوزيع أولاً'); 
+    return; 
+  }
+  
+  const rows = [['نوع المسار','رقم الباص','#','اسم الطالب','lat','lon','رابط']];
+  
+  lastRoutes.forEach((route)=>{
+    route.stops.forEach((st, idx)=>{
+      const url = `https://www.google.com/maps/search/?api=1&query=${st.lat},${st.lon}`;
+      rows.push([
+        route.type,
+        route.busId,
+        idx+1, 
+        st.name || '', 
+        st.lat.toFixed(6), 
+        st.lon.toFixed(6), 
+        url
+      ]);
+    });
+  });
+  
+  const csv = rows.map(r=> r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8'});
+  const urlObj = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = urlObj;
+  a.download = 'bus_routes.csv';
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(urlObj);
+  a.remove();
+  toast('✅ تم حفظ ملف CSV');
+};
+
+/* ==================== تصدير Excel ==================== */
+document.getElementById('exportXlsx').onclick = ()=>{
+  try{
+    if(typeof XLSX === 'undefined'){ 
+      alert('تعذّر تحميل مكتبة Excel. تأكد من الاتصال بالإنترنت.'); 
+      return; 
+    }
+    
+    if(!lastRoutes || lastRoutes.length===0){ 
+      alert('نفّذ التوزيع أولاً'); 
+      return; 
+    }
+
+    // Sheet "المسارات"
+    const header = ["نوع المسار", "رقم الباص", "#", "اسم الطالب", "Latitude", "Longitude", "رابط Google Maps"];
+    const rows = [header];
+
+    lastRoutes.forEach((route)=>{
+      route.stops.forEach((st, idx)=>{
+        const url = `https://www.google.com/maps/search/?api=1&query=${st.lat},${st.lon}`;
+        rows.push([
+          route.type,
+          route.busId,
+          idx+1, 
+          st.name || '', 
+          Number(st.lat.toFixed(6)), 
+          Number(st.lon.toFixed(6)), 
+          url
+        ]);
+      });
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+
+    // تحويل عمود الرابط إلى Hyperlink
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for(let r = range.s.r + 1; r <= range.e.r; r++){
+      const cellAddr = XLSX.utils.encode_cell({ r, c: 6 });
+      const cell = ws[cellAddr];
+      if(cell && cell.v){
+        cell.l = { Target: String(cell.v), Tooltip: "فتح في خرائط Google" };
+      }
+    }
+
+    ws['!cols'] = [{wch:12},{wch:10},{wch:6},{wch:24},{wch:12},{wch:12},{wch:40}];
+
+    // Sheet "الملخص"
+    const summaryRows = [
+      ["العنصر","القيمة"],
+      ["عدد الطلاب", students.length],
+      ["عدد المسارات", lastRoutes.length],
+      ["المدرسة", `${school.lat.toFixed(6)}, ${school.lon.toFixed(6)}`],
+      ["المشرف", `${supervisor.lat.toFixed(6)}, ${supervisor.lon.toFixed(6)}`],
+      ["",""],
+      ["تفاصيل المسارات",""]
+    ];
+    
+    lastRoutes.forEach(route => {
+      summaryRows.push([
+        `باص ${route.busId} (${route.type})`,
+        `${route.stops.length} نقطة، ${(route.distance_m/1000).toFixed(2)} كم، ${(route.duration_s/60).toFixed(1)} دقيقة`
+      ]);
+    });
+    
+    const ws2 = XLSX.utils.aoa_to_sheet(summaryRows);
+    ws2['!cols'] = [{wch:24},{wch:50}];
+
+    // إنشاء المصنف
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "المسارات");
+    XLSX.utils.book_append_sheet(wb, ws2, "الملخص");
+
+    // حفظ الملف
+    if (XLSX.writeFileXLSX) XLSX.writeFileXLSX(wb, "bus_routes.xlsx");
+    else XLSX.writeFile(wb, "bus_routes.xlsx");
+
+    toast("✅ تم حفظ ملف Excel");
+  }catch(e){
+    console.error(e);
+    alert('تعذر حفظ Excel: ' + (e.message || e));
+  }
+};
+
+/* ==================== حفظ وتحميل الخطط ==================== */
+document.getElementById('savePlan').onclick = ()=>{
+  const plan = {
+    version: '3.0',
+    school: school,
+    supervisor: supervisor,
+    students: students,
+    busSizes: document.getElementById('busSizes').value.trim(),
+    routeType: selectedRouteType,
+    timestamp: new Date().toISOString()
+  };
+  
+  const json = JSON.stringify(plan, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bus-plan-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(url);
+  a.remove();
+  toast('✅ تم حفظ الخطة');
+};
+
+document.getElementById('loadPlanInput').onchange = function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(event){
+    try{
+      const plan = JSON.parse(event.target.result);
+      
+      // استعادة البيانات
+      if(plan.school){
+        school = plan.school;
+        schoolMarker.setLatLng([school.lat, school.lon]);
+        document.getElementById('school').value = `${school.lat.toFixed(6)}, ${school.lon.toFixed(6)}`;
+      }
+      
+      if(plan.supervisor){
+        supervisor = plan.supervisor;
+        supMarker.setLatLng([supervisor.lat, supervisor.lon]);
+        document.getElementById('supervisor').value = `${supervisor.lat.toFixed(6)}, ${supervisor.lon.toFixed(6)}`;
+      }
+      
+      if(plan.students){
+        students = plan.students;
+        renderStudentMarkers();
+      }
+      
+      if(plan.busSizes){
+        document.getElementById('busSizes').value = plan.busSizes;
+      }
+      
+      if(plan.routeType){
+        selectedRouteType = plan.routeType;
+        document.querySelectorAll('.route-type-btn').forEach(btn => {
+          if(btn.getAttribute('data-type') === plan.routeType){
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+      }
+      
+      map.setView([school.lat, school.lon], 12);
+      toast('✅ تم تحميل الخطة بنجاح');
+      
+    }catch(err){
+      console.error(err);
+      alert('فشل تحميل الخطة: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  
+  // إعادة تعيين input لتمكين تحميل نفس الملف مرة أخرى
+  e.target.value = '';
+};
+
+/* ==================== بدء التطبيق ==================== */
+renderStudentMarkers();
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // دالة للتحقق من المصادقة
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // دالة للتحقق من الدور
+    function hasRole(role) {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+    
+    // دالة للتحقق من ملكية المستند
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // ==================== المستخدمون ====================
+    match /users/{userId} {
+      // القراءة: المستخدم نفسه أو المدير
+      allow read: if isOwner(userId) || hasRole('admin');
+      
+      // الكتابة: المدير فقط
+      allow create, update: if hasRole('admin');
+      
+      // الحذف: المدير فقط
+      allow delete: if hasRole('admin');
+    }
+    
+    // ==================== المدارس ====================
+    match /schools/{schoolId} {
+      // القراءة: جميع المستخدمين المصادق عليهم
+      allow read: if isSignedIn();
+      
+      // الكتابة: المدير فقط
+      allow create, update, delete: if hasRole('admin');
+    }
+    
+    // ==================== الباصات ====================
+    match /buses/{busId} {
+      // القراءة: جميع المستخدمين المصادق عليهم
+      allow read: if isSignedIn();
+      
+      // الكتابة: المدير فقط
+      allow create, update, delete: if hasRole('admin');
+    }
+    
+    // ==================== الطلاب ====================
+    match /students/{studentId} {
+      // القراءة: المدير أو ولي الأمر المرتبط بالطالب
+      allow read: if hasRole('admin') || 
+                     (hasRole('parent') && resource.data.parentId == request.auth.uid);
+      
+      // الكتابة: المدير فقط
+      allow create, update, delete: if hasRole('admin');
+    }
+    
+    // ==================== المسارات ====================
+    match /routes/{routeId} {
+      // القراءة: جميع المستخدمين المصادق عليهم
+      allow read: if isSignedIn();
+      
+      // الكتابة: المدير أو السائق المرتبط بالمسار
+      allow create, update: if hasRole('admin') || 
+                               (hasRole('driver') && resource.data.driverId == request.auth.uid);
+      
+      // الحذف: المدير فقط
+      allow delete: if hasRole('admin');
+    }
+    
+    // ==================== التتبع ====================
+    match /tracking/{busId} {
+      // القراءة: جميع المستخدمين المصادق عليهم
+      allow read: if isSignedIn();
+      
+      // الكتابة: المدير أو السائق المرتبط بالباص
+      allow create, update: if hasRole('admin') || hasRole('driver');
+      
+      // الحذف: المدير فقط
+      allow delete: if hasRole('admin');
+    }
+    
+    // ==================== الإشعارات ====================
+    match /notifications/{notificationId} {
+      // القراءة: المستخدم المرتبط بالإشعار
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // الكتابة: المدير فقط
+      allow create, update, delete: if hasRole('admin');
+    }
+    
+    // ==================== السجلات ====================
+    match /logs/{logId} {
+      // القراءة: المدير فقط
+      allow read: if hasRole('admin');
+      
+      // الكتابة: جميع المستخدمين المصادق عليهم (للتسجيل)
+      allow create: if isSignedIn();
+      
+      // التحديث والحذف: المدير فقط
+      allow update, delete: if hasRole('admin');
+    }
+  }
+}

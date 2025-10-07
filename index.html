@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام تتبع الباصات المدرسية</title>
+  
+  <!-- الخطوط -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- CSS المشترك -->
+  <link rel="stylesheet" href="assets/css/common.css">
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* خلفية متحركة */
+    .bg-animation {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .shape {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      animation: float 20s infinite ease-in-out;
+    }
+
+    .shape:nth-child(1) {
+      width: 300px;
+      height: 300px;
+      top: -150px;
+      right: -150px;
+      animation-delay: 0s;
+    }
+
+    .shape:nth-child(2) {
+      width: 200px;
+      height: 200px;
+      bottom: -100px;
+      left: 10%;
+      animation-delay: 5s;
+    }
+
+    .shape:nth-child(3) {
+      width: 150px;
+      height: 150px;
+      top: 50%;
+      right: 10%;
+      animation-delay: 10s;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+      }
+      50% {
+        transform: translateY(-50px) rotate(180deg);
+      }
+    }
+
+    /* الحاوية الرئيسية */
+    .login-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 440px;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(20px);
+      border-radius: var(--radius-xl);
+      padding: 48px 40px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    /* الشعار والعنوان */
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      margin: 0 auto 16px auto;
+      box-shadow: 0 12px 32px rgba(14, 165, 233, 0.4);
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    .logo h1 {
+      font-size: 28px;
+      font-weight: 900;
+      margin: 0 0 8px 0;
+      color: var(--text-primary);
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo p {
+      font-size: 14px;
+      margin: 0;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* التبويبات */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 32px;
+      background: var(--bg-secondary);
+      padding: 6px;
+      border-radius: var(--radius-md);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: inherit;
+    }
+
+    .tab.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* النموذج */
+    .login-form {
+      display: none;
+    }
+
+    .login-form.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group {
+      position: relative;
+    }
+
+    .input-icon {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      color: var(--text-muted);
+    }
+
+    .form-control {
+      padding-right: 48px;
+    }
+
+    .remember-forgot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      font-size: 13px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .checkbox-label input {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .forgot-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 700;
+      transition: var(--transition);
+    }
+
+    .forgot-link:hover {
+      color: var(--primary-dark);
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    /* الفاصل */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 24px 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-color);
+    }
+
+    /* الروابط السريعة */
+    .quick-links {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .quick-link {
+      padding: 16px 12px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      text-align: center;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 13px;
+      transition: var(--transition);
+      border: 1px solid var(--border-color);
+    }
+
+    .quick-link:hover {
+      background: var(--bg-tertiary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .quick-link-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    /* التذييل */
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .footer a {
+      color: white;
+      text-decoration: none;
+      font-weight: 800;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+      transition: var(--transition);
+    }
+
+    .footer a:hover {
+      border-bottom-color: white;
+    }
+
+    /* التجاوبية */
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 32px 24px;
+      }
+
+      .logo h1 {
+        font-size: 24px;
+      }
+
+      .quick-links {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- الخلفية المتحركة -->
+  <div class="bg-animation">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+  </div>
+
+  <!-- الحاوية الرئيسية -->
+  <div class="login-container">
+    <div class="login-card">
+      <!-- الشعار -->
+      <div class="logo">
+        <div class="logo-icon">🚌</div>
+        <h1>نظام تتبع الباصات</h1>
+        <p>إدارة ذكية للنقل المدرسي</p>
+      </div>
+
+      <!-- التبويبات -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('admin')">مدير</button>
+        <button class="tab" onclick="switchTab('driver')">سائق</button>
+        <button class="tab" onclick="switchTab('parent')">ولي أمر</button>
+      </div>
+
+      <!-- نموذج المدير -->
+      <form class="login-form active" id="adminForm" onsubmit="handleLogin(event, 'admin')">
+        <div class="form-group">
+          <label class="form-label">البريد الإلكتروني</label>
+          <div class="input-group">
+            <span class="input-icon">📧</span>
+            <input type="email" class="form-control" placeholder="admin@school.com" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">كلمة المرور</label>
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" class="form-control" placeholder="••••••••" required>
+          </div>
+        </div>
+
+        <div class="remember-forgot">
+          <label class="checkbox-label">
+            <input type="checkbox">
+            <span>تذكرني</span>
+          </label>
+          <a href="#" class="forgot-link">نسيت كلمة المرور؟</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary submit-btn">
+          <span>🚀</span>
+          <span>تسجيل الدخول</span>
+        </button>
+      </form>
+
+      <!-- نموذج السائق -->
+      <form class="login-form" id="driverForm" onsubmit="handleLogin(event, 'driver')">
+        <div class="form-group">
+          <label class="form-label">البريد الإلكتروني</label>
+          <div class="input-group">
+            <span class="input-icon">📧</span>
+            <input type="email" class="form-control" placeholder="driver@school.com" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">كلمة المرور</label>
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" class="form-control" placeholder="••••••••" required>
+          </div>
+        </div>
+
+        <div class="remember-forgot">
+          <label class="checkbox-label">
+            <input type="checkbox">
+            <span>تذكرني</span>
+          </label>
+          <a href="#" class="forgot-link">نسيت كلمة المرور؟</a>
+        </div>
+
+        <button type="submit" class="btn btn-success submit-btn">
+          <span>🚌</span>
+          <span>تسجيل الدخول</span>
+        </button>
+      </form>
+
+      <!-- نموذج ولي الأمر -->
+      <form class="login-form" id="parentForm" onsubmit="handleLogin(event, 'parent')">
+        <div class="form-group">
+          <label class="form-label">البريد الإلكتروني</label>
+          <div class="input-group">
+            <span class="input-icon">📧</span>
+            <input type="email" class="form-control" placeholder="parent@email.com" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">كلمة المرور</label>
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" class="form-control" placeholder="••••••••" required>
+          </div>
+        </div>
+
+        <div class="remember-forgot">
+          <label class="checkbox-label">
+            <input type="checkbox">
+            <span>تذكرني</span>
+          </label>
+          <a href="#" class="forgot-link">نسيت كلمة المرور؟</a>
+        </div>
+
+        <button type="submit" class="btn btn-warning submit-btn">
+          <span>👨‍👩‍👧</span>
+          <span>تسجيل الدخول</span>
+        </button>
+      </form>
+
+      <div class="divider">أو</div>
+
+      <!-- الروابط السريعة -->
+      <div class="quick-links">
+        <a href="admin/planning.html" class="quick-link">
+          <div class="quick-link-icon">🗺️</div>
+          <div>تخطيط المسارات</div>
+        </a>
+        <a href="admin/dashboard.html" class="quick-link">
+          <div class="quick-link-icon">📊</div>
+          <div>لوحة التحكم</div>
+        </a>
+        <a href="#" class="quick-link">
+          <div class="quick-link-icon">❓</div>
+          <div>المساعدة</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- التذييل -->
+    <div class="footer">
+      <p>صُنع بـ ❤️ للمدارس العربية</p>
+      <p style="margin-top: 8px;">
+        <a href="https://github.com" target="_blank">GitHub</a> • 
+        <a href="#" target="_blank">الدعم</a> • 
+        <a href="#" target="_blank">الشروط</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase Config -->
+  <script src="assets/js/firebase-config.js"></script>
+
+  <script>
+    let currentTab = 'admin';
+
+    // تبديل التبويبات
+    function switchTab(tab) {
+      currentTab = tab;
+
+      // تحديث التبويبات
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // تحديث النماذج
+      document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
+      document.getElementById(tab + 'Form').classList.add('active');
+    }
+
+    // معالجة تسجيل الدخول
+    async function handleLogin(event, role) {
+      event.preventDefault();
+
+      const form = event.target;
+      const email = form.querySelector('input[type="email"]').value;
+      const password = form.querySelector('input[type="password"]').value;
+
+      // عرض مؤشر التحميل
+      const submitBtn = form.querySelector('.submit-btn');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> <span>جاري تسجيل الدخول...</span>';
+
+      try {
+        // محاولة تسجيل الدخول
+        const result = await signIn(email, password);
+
+        if (result.success) {
+          // التحقق من دور المستخدم
+          const userDoc = await getDocument('users', result.user.uid);
+          
+          if (userDoc.success && userDoc.data.role === role) {
+            // توجيه حسب الدور
+            switch (role) {
+              case 'admin':
+                window.location.href = 'admin/dashboard.html';
+                break;
+              case 'driver':
+                window.location.href = 'driver/index.html';
+                break;
+              case 'parent':
+                window.location.href = 'parent/index.html';
+                break;
+            }
+          } else {
+            alert('هذا الحساب غير مصرح له بالدخول كـ ' + getRoleArabic(role));
+            await signOut();
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+          }
+        } else {
+          alert('خطأ في تسجيل الدخول: ' + result.error);
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
+      } catch (error) {
+        console.error('خطأ:', error);
+        alert('حدث خطأ غير متوقع');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    }
+
+    // الحصول على اسم الدور بالعربية
+    function getRoleArabic(role) {
+      const roles = {
+        'admin': 'مدير',
+        'driver': 'سائق',
+        'parent': 'ولي أمر'
+      };
+      return roles[role] || role;
+    }
+
+    // التحقق من المصادقة عند تحميل الصفحة
+    onAuthStateChanged(user => {
+      if (user) {
+        // المستخدم مسجل دخول بالفعل، توجيهه حسب دوره
+        getDocument('users', user.uid).then(userDoc => {
+          if (userDoc.success) {
+            switch (userDoc.data.role) {
+              case 'admin':
+                window.location.href = 'admin/dashboard.html';
+                break;
+              case 'driver':
+                window.location.href = 'driver/index.html';
+                break;
+              case 'parent':
+                window.location.href = 'parent/index.html';
+                break;
+            }
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

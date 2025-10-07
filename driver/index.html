@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>تطبيق السائق - نظام تتبع الباصات</title>
+  
+  <!-- الخطوط -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <!-- CSS المشترك -->
+  <link rel="stylesheet" href="../assets/css/common.css">
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f8fafc;
+      overflow: hidden;
+      height: 100vh;
+      touch-action: pan-y;
+    }
+
+    .driver-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* الشريط العلوي */
+    .top-header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 16px 20px;
+      box-shadow: 0 4px 16px rgba(14, 165, 233, 0.3);
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-title h1 {
+      font-size: 18px;
+      font-weight: 900;
+      margin: 0;
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 12px var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* الخريطة */
+    .map-section {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #driverMap {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* بطاقة المعلومات العائمة */
+    .info-card {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      left: 16px;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: var(--shadow-xl);
+      z-index: 500;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .info-row:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .info-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .info-value {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    /* قائمة الطلاب */
+    .students-panel {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      left: 0;
+      background: white;
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+      max-height: 50vh;
+      transition: transform 0.3s ease;
+      z-index: 600;
+    }
+
+    .students-panel.collapsed {
+      transform: translateY(calc(100% - 60px));
+    }
+
+    .panel-handle {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .panel-handle-bar {
+      width: 40px;
+      height: 4px;
+      background: var(--border-color-dark);
+      border-radius: 2px;
+      position: absolute;
+      top: 12px;
+      right: 50%;
+      transform: translateX(50%);
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-content {
+      padding: 16px 20px;
+      overflow-y: auto;
+      max-height: calc(50vh - 60px);
+    }
+
+    .student-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+      transition: var(--transition);
+    }
+
+    .student-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .student-item.completed {
+      opacity: 0.6;
+      background: rgba(34, 197, 94, 0.1);
+    }
+
+    .student-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .student-number {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .student-details h4 {
+      font-size: 14px;
+      font-weight: 800;
+      margin: 0 0 4px 0;
+      color: var(--text-primary);
+    }
+
+    .student-details p {
+      font-size: 12px;
+      margin: 0;
+      color: var(--text-muted);
+    }
+
+    .student-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* أزرار التحكم */
+    .control-buttons {
+      position: absolute;
+      bottom: calc(50vh + 20px);
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 550;
+    }
+
+    .control-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: none;
+      background: white;
+      box-shadow: var(--shadow-lg);
+      font-size: 24px;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .control-btn:hover {
+      transform: scale(1.1);
+      box-shadow: var(--shadow-xl);
+    }
+
+    .control-btn.primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+    }
+
+    .control-btn.success {
+      background: linear-gradient(135deg, var(--success), #16a34a);
+      color: white;
+    }
+
+    .control-btn.danger {
+      background: linear-gradient(135deg, var(--danger), #dc2626);
+      color: white;
+    }
+
+    /* الشريط السفلي */
+    .bottom-bar {
+      background: white;
+      padding: 16px 20px;
+      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05);
+      display: flex;
+      gap: 12px;
+      z-index: 700;
+    }
+
+    .bottom-bar .btn {
+      flex: 1;
+    }
+
+    /* حالة التتبع */
+    .tracking-badge {
+      position: absolute;
+      top: 100px;
+      right: 16px;
+      background: rgba(34, 197, 94, 0.95);
+      color: white;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: var(--shadow-md);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tracking-badge .spinner {
+      width: 12px;
+      height: 12px;
+      border-width: 2px;
+    }
+
+    /* التجاوبية */
+    @media (min-width: 768px) {
+      .driver-container {
+        max-width: 480px;
+        margin: 0 auto;
+        box-shadow: var(--shadow-xl);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="driver-container">
+    <!-- الشريط العلوي -->
+    <header class="top-header">
+      <div class="header-content">
+        <div class="header-title">
+          <span>🚌</span>
+          <h1>باص رقم <span id="busNumber">—</span></h1>
+        </div>
+        <div class="header-status">
+          <span class="status-dot"></span>
+          <span>متصل</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- الخريطة -->
+    <div class="map-section">
+      <div id="driverMap"></div>
+
+      <!-- بطاقة المعلومات -->
+      <div class="info-card">
+        <div class="info-row">
+          <span class="info-label">المسار الحالي</span>
+          <span class="info-value" id="currentRoute">صباحي</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">الطلاب المتبقين</span>
+          <span class="info-value" id="remainingStudents">0</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">المسافة المتبقية</span>
+          <span class="info-value" id="remainingDistance">— كم</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">الوقت المتوقع</span>
+          <span class="info-value" id="estimatedTime">— دقيقة</span>
+        </div>
+      </div>
+
+      <!-- شارة التتبع -->
+      <div class="tracking-badge" id="trackingBadge" style="display: none;">
+        <span class="spinner"></span>
+        <span>جاري التتبع...</span>
+      </div>
+
+      <!-- أزرار التحكم -->
+      <div class="control-buttons">
+        <button class="control-btn primary" onclick="centerOnMyLocation()" title="موقعي">
+          📍
+        </button>
+        <button class="control-btn" onclick="togglePanel()" title="قائمة الطلاب">
+          📋
+        </button>
+      </div>
+
+      <!-- قائمة الطلاب -->
+      <div class="students-panel" id="studentsPanel">
+        <div class="panel-handle" onclick="togglePanel()">
+          <div class="panel-handle-bar"></div>
+          <div class="panel-title">
+            <span>👨‍🎓</span>
+            <span>قائمة الطلاب (<span id="studentCount">0</span>)</span>
+          </div>
+          <span id="panelToggleIcon">▼</span>
+        </div>
+        <div class="panel-content" id="studentsList">
+          <p style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+            لا توجد نقاط في المسار الحالي
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- الشريط السفلي -->
+    <div class="bottom-bar">
+      <button class="btn btn-success" id="startBtn" onclick="startRoute()">
+        <span>▶️</span>
+        <span>بدء المسار</span>
+      </button>
+      <button class="btn btn-danger" id="endBtn" onclick="endRoute()" style="display: none;">
+        <span>⏹️</span>
+        <span>إنهاء المسار</span>
+      </button>
+      <button class="btn btn-ghost" onclick="logout()">
+        <span>🚪</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Firebase Config -->
+  <script src="../assets/js/firebase-config.js"></script>
+
+  <script>
+    // متغيرات عامة
+    let driverMap;
+    let currentPosition = null;
+    let watchId = null;
+    let routeActive = false;
+    let currentRoute = null;
+    let students = [];
+    let completedStudents = new Set();
+    let myMarker = null;
+    let routeLayer = null;
+
+    // تهيئة الخريطة
+    function initMap() {
+      driverMap = L.map('driverMap', {
+        zoomControl: false
+      }).setView([24.7136, 46.6753], 15);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(driverMap);
+
+      // إضافة زر التكبير في الأسفل
+      L.control.zoom({ position: 'bottomleft' }).addTo(driverMap);
+    }
+
+    // التحقق من المصادقة
+    onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = '../index.html';
+      } else {
+        initMap();
+        loadDriverData(user);
+      }
+    });
+
+    // تحميل بيانات السائق
+    async function loadDriverData(user) {
+      try {
+        // الحصول على بيانات السائق
+        const userDoc = await getDocument('users', user.uid);
+        if (userDoc.success && userDoc.data.busId) {
+          document.getElementById('busNumber').textContent = userDoc.data.busId;
+          
+          // تحميل المسار الحالي
+          await loadCurrentRoute(userDoc.data.busId);
+        }
+      } catch (error) {
+        console.error('خطأ في تحميل بيانات السائق:', error);
+      }
+    }
+
+    // تحميل المسار الحالي
+    async function loadCurrentRoute(busId) {
+      try {
+        const routes = await getCollection('routes', [
+          { field: 'busId', operator: '==', value: busId },
+          { field: 'active', operator: '==', value: true }
+        ]);
+
+        if (routes.success && routes.data.length > 0) {
+          currentRoute = routes.data[0];
+          students = currentRoute.stops || [];
+          
+          document.getElementById('studentCount').textContent = students.length;
+          document.getElementById('remainingStudents').textContent = students.length;
+          
+          renderStudentsList();
+          drawRouteOnMap();
+        }
+      } catch (error) {
+        console.error('خطأ في تحميل المسار:', error);
+      }
+    }
+
+    // رسم المسار على الخريطة
+    function drawRouteOnMap() {
+      if (!currentRoute || !currentRoute.geometry) return;
+
+      if (routeLayer) {
+        driverMap.removeLayer(routeLayer);
+      }
+
+      routeLayer = L.geoJSON(currentRoute.geometry, {
+        style: {
+          color: '#0ea5e9',
+          weight: 6,
+          opacity: 0.7
+        }
+      }).addTo(driverMap);
+
+      // إضافة علامات الطلاب
+      students.forEach((student, idx) => {
+        const icon = L.divIcon({
+          html: `<div style="background: white; color: #0ea5e9; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.2); border: 2px solid #0ea5e9; font-size: 12px;">${idx + 1}</div>`,
+          className: '',
+          iconSize: [32, 32]
+        });
+
+        L.marker([student.lat, student.lon], { icon: icon })
+          .bindPopup(`<strong>${student.name || 'طالب ' + (idx + 1)}</strong>`)
+          .addTo(driverMap);
+      });
+
+      // تكبير لعرض المسار كاملاً
+      driverMap.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+    }
+
+    // عرض قائمة الطلاب
+    function renderStudentsList() {
+      const list = document.getElementById('studentsList');
+      
+      if (students.length === 0) {
+        list.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px 0;">لا توجد نقاط في المسار الحالي</p>';
+        return;
+      }
+
+      list.innerHTML = '';
+      students.forEach((student, idx) => {
+        const item = document.createElement('div');
+        item.className = 'student-item' + (completedStudents.has(idx) ? ' completed' : '');
+        item.innerHTML = `
+          <div class="student-info">
+            <div class="student-number">${idx + 1}</div>
+            <div class="student-details">
+              <h4>${student.name || 'طالب ' + (idx + 1)}</h4>
+              <p>${student.lat.toFixed(5)}, ${student.lon.toFixed(5)}</p>
+            </div>
+          </div>
+          <div class="student-actions">
+            ${completedStudents.has(idx) 
+              ? '<span class="badge badge-success">✓ تم</span>' 
+              : `<button class="btn btn-success btn-sm" onclick="confirmPickup(${idx})">تأكيد</button>`
+            }
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    // بدء المسار
+    function startRoute() {
+      if (!navigator.geolocation) {
+        alert('المتصفح لا يدعم تحديد الموقع');
+        return;
+      }
+
+      routeActive = true;
+      document.getElementById('startBtn').style.display = 'none';
+      document.getElementById('endBtn').style.display = 'flex';
+      document.getElementById('trackingBadge').style.display = 'flex';
+
+      // بدء تتبع الموقع
+      watchId = navigator.geolocation.watchPosition(
+        updatePosition,
+        handleLocationError,
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+    }
+
+    // تحديث الموقع
+    async function updatePosition(position) {
+      currentPosition = {
+        lat: position.coords.latitude,
+        lon: position.coords.longitude
+      };
+
+      // تحديث العلامة على الخريطة
+      if (!myMarker) {
+        const icon = L.divIcon({
+          html: '<div style="background: linear-gradient(135deg, #22c55e, #16a34a); color: white; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; box-shadow: 0 4px 16px rgba(34,197,94,0.5); border: 4px solid white; font-size: 24px;">🚌</div>',
+          className: '',
+          iconSize: [48, 48]
+        });
+
+        myMarker = L.marker([currentPosition.lat, currentPosition.lon], { icon: icon })
+          .addTo(driverMap);
+      } else {
+        myMarker.setLatLng([currentPosition.lat, currentPosition.lon]);
+      }
+
+      // إرسال الموقع إلى Firebase
+      if (routeActive) {
+        const busNumber = document.getElementById('busNumber').textContent;
+        await updateBusLocation(busNumber, currentPosition);
+      }
+    }
+
+    // معالجة أخطاء الموقع
+    function handleLocationError(error) {
+      console.error('خطأ في تحديد الموقع:', error);
+      alert('تعذر تحديد موقعك. تأكد من تفعيل خدمات الموقع.');
+    }
+
+    // تأكيد استلام طالب
+    function confirmPickup(index) {
+      if (confirm(`هل تأكد استلام/توصيل ${students[index].name || 'الطالب'}؟`)) {
+        completedStudents.add(index);
+        renderStudentsList();
+        
+        const remaining = students.length - completedStudents.size;
+        document.getElementById('remainingStudents').textContent = remaining;
+        
+        if (remaining === 0) {
+          alert('تم إكمال جميع النقاط! 🎉');
+        }
+      }
+    }
+
+    // إنهاء المسار
+    function endRoute() {
+      if (confirm('هل تريد إنهاء المسار؟')) {
+        if (watchId) {
+          navigator.geolocation.clearWatch(watchId);
+          watchId = null;
+        }
+
+        routeActive = false;
+        document.getElementById('startBtn').style.display = 'flex';
+        document.getElementById('endBtn').style.display = 'none';
+        document.getElementById('trackingBadge').style.display = 'none';
+
+        alert('تم إنهاء المسار بنجاح');
+      }
+    }
+
+    // التمركز على موقعي
+    function centerOnMyLocation() {
+      if (currentPosition) {
+        driverMap.flyTo([currentPosition.lat, currentPosition.lon], 16);
+      } else {
+        alert('لم يتم تحديد موقعك بعد');
+      }
+    }
+
+    // تبديل لوحة الطلاب
+    function togglePanel() {
+      const panel = document.getElementById('studentsPanel');
+      const icon = document.getElementById('panelToggleIcon');
+      
+      panel.classList.toggle('collapsed');
+      icon.textContent = panel.classList.contains('collapsed') ? '▲' : '▼';
+    }
+
+    // تسجيل الخروج
+    async function logout() {
+      if (routeActive) {
+        alert('يجب إنهاء المسار أولاً');
+        return;
+      }
+
+      const result = await signOut();
+      if (result.success) {
+        window.location.href = '../index.html';
+      }
+    }
+
+    // تنظيف عند مغادرة الصفحة
+    window.addEventListener('beforeunload', () => {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    });
+  </script>
+</body>
+</html>
