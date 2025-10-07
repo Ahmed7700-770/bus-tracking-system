@@ -2,25 +2,16 @@
 // تكوين Firebase
 // ============================================
 // استبدل هذه القيم بإعدادات مشروعك من Firebase Console
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBv0aBgrG0Tz8LzIlPuuAuiVFDlFIP47d4",
-    authDomain: "bus-tracking-system-da5b9.firebaseapp.com",
-    databaseURL: "https://bus-tracking-system-da5b9-default-rtdb.firebaseio.com",
-    projectId: "bus-tracking-system-da5b9",
-    storageBucket: "bus-tracking-system-da5b9.firebasestorage.app",
-    messagingSenderId: "21140582193",
-    appId: "1:21140582193:web:f1614b8368165b3a9bca10",
-    measurementId: "G-K5L5LKBLP3"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyBv0aBgrG0Tz8LzIlPuuAuiVFDlFIP47d4",
+  authDomain: "bus-tracking-system-da5b9.firebaseapp.com",
+  databaseURL: "https://bus-tracking-system-da5b9-default-rtdb.firebaseio.com",
+  projectId: "bus-tracking-system-da5b9",
+  storageBucket: "bus-tracking-system-da5b9.firebasestorage.app",
+  messagingSenderId: "21140582193",
+  appId: "1:21140582193:web:f1614b8368165b3a9bca10",
+  measurementId: "G-K5L5LKBLP3"
+};
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
