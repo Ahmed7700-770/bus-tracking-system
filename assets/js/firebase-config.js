@@ -2,14 +2,23 @@
 // تكوين Firebase
 // ============================================
 // استبدل هذه القيم بإعدادات مشروعك من Firebase Console
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com"
+  apiKey: "AIzaSyBv0aBgrG0Tz8LzIlPuuAuiVFDlFIP47d4",
+  authDomain: "bus-tracking-system-da5b9.firebaseapp.com",
+  databaseURL: "https://bus-tracking-system-da5b9-default-rtdb.firebaseio.com",
+  projectId: "bus-tracking-system-da5b9",
+  storageBucket: "bus-tracking-system-da5b9.firebasestorage.app",
+  messagingSenderId: "21140582193",
+  appId: "1:21140582193:web:f1614b8368165b3a9bca10",
+  measurementId: "G-K5L5LKBLP3"
 };
 
 
